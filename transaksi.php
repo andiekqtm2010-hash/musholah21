@@ -5,6 +5,17 @@
 
 require_once 'db.php';
 include 'layout.php';
+
+// letakkan di awal file utama (setelah require db/layout pun boleh),
+// yang penting sebelum kita memanggil kelas PhpSpreadsheet:
+$autoload = __DIR__ . '/vendor/autoload.php';
+if (file_exists($autoload)) {
+    require_once $autoload;
+} else {
+    // fallback aman: tetap izinkan CSV, tapi berikan pesan jika user memilih XLSX
+    // (opsional) echo '<div class="alert alert-warning">Autoload Composer tidak ditemukan. Impor XLSX mungkin tidak bisa.</div>';
+}
+
 ?>
 
 
@@ -14,7 +25,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'template_csv') {
     header('Content-Disposition: attachment; filename="template_import_musholah21.csv"');
     $out = fopen('php://output', 'w');
     // Header CSV wajib:
-    fputcsv($out, ['tgl','keterangan','code_coa','jenis','nominal']);
+    fputcsv($out, ['tgl','keterangan','coa_id','jenis','nominal']);
     // Contoh baris (boleh dihapus):
     fputcsv($out, ['2025-10-01','Infaq Jumat','INFAQ', 'IN', '150000']);
     fputcsv($out, ['01/10/2025','Beli sapu','PERLALAT', 'OUT', '35000']);
@@ -22,6 +33,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'template_csv') {
     exit;
 }
 ?>
+
 
 <h5 class="mb-3">Transaksi Kas Musholah 21</h5>
 
@@ -192,7 +204,7 @@ $res = $conn->query("
           <label class="form-label">Pilih file (.xlsx / .csv)</label>
           <input type="file" name="file" class="form-control" accept=".xlsx,.csv" required id="fileInput">
           <div class="form-text">
-            Urutan kolom: <code>tgl</code>, <code>keterangan</code>, <code>code_coa</code>, <code>jenis</code>, <code>nominal</code>
+            Urutan kolom: <code>tgl</code>, <code>keterangan</code>, <code>coa_id</code>, <code>jenis</code>, <code>nominal</code>
           </div>
         </div>
 
@@ -242,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['mode'] ?? '') === 'import'
             }
 
             // --- Validasi header minimum
-            $required = ['tgl','keterangan','code_coa','jenis','nominal'];
+            $required = ['tgl','keterangan','coa_id','jenis','nominal'];
             $headerOk = validateHeaders($rows['headers'] ?? [], $required);
             if (!$headerOk) {
                 throw new RuntimeException(
@@ -257,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['mode'] ?? '') === 'import'
             }
 
             // --- Siapkan cache COA dan prepared statements
-            $coaCache = []; // code_coa => id
+            $coaCache = []; // coa_id => id
             $maxRows  = 5000; // batas aman
             $inserted = 0;
             $errors   = []; // kumpulkan error per baris
@@ -280,14 +292,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['mode'] ?? '') === 'import'
                 // Lewati baris kosong penuh
                 if ($norm === null) { $lineNo++; continue; }
 
-                // Resolve COA ID dari code_coa
-                $code = $norm['code_coa'];
+                // Resolve COA ID dari coa_id
+                $code = $norm['coa_id'];
                 $coa_id = resolveCoaIdByCode($conn, $code, $coaCache);
 
                 $errMsg = [];
                 if (!$norm['tgl'])      { $errMsg[] = "tgl tidak valid"; }
                 if ($norm['keterangan']==='') { $errMsg[] = "keterangan kosong"; }
-                if (!$coa_id)           { $errMsg[] = "code_coa [$code] tidak ditemukan di master COA"; }
+                if (!$coa_id)           { $errMsg[] = "coa_id [$code] tidak ditemukan di master COA"; }
                 if (!in_array($norm['jenis'], ['IN','OUT'], true)) { $errMsg[] = "jenis harus IN/OUT"; }
                 if ($norm['nominal'] <= 0) { $errMsg[] = "nominal harus > 0"; }
 
@@ -430,7 +442,7 @@ function validateHeaders(array $headers, array $required): bool {
 }
 
 /**
- * Normalisasi satu baris impor → array ['tgl','keterangan','code_coa','jenis','nominal']
+ * Normalisasi satu baris impor → array ['tgl','keterangan','coa_id','jenis','nominal']
  * - Tanggal: terima 'Y-m-d', 'd/m/Y', 'd-m-Y'
  * - Jenis: IN/OUT (case-insensitive)
  * - Nominal: buang pemisah ribuan, koma→titik
@@ -443,12 +455,12 @@ function normalizeRow(array $row): ?array {
 
     $tglStr   = trim((string)($map['tgl'] ?? ''));
     $ket      = trim((string)($map['keterangan'] ?? ''));
-    $code_coa = trim((string)($map['code_coa'] ?? ''));
+    $coa_id = trim((string)($map['coa_id'] ?? ''));
     $jenis    = strtoupper(trim((string)($map['jenis'] ?? '')));
     $nomStr   = trim((string)($map['nominal'] ?? ''));
 
     // Baris kosong penuh?
-    if ($tglStr==='' && $ket==='' && $code_coa==='' && $jenis==='' && $nomStr==='') {
+    if ($tglStr==='' && $ket==='' && $coa_id==='' && $jenis==='' && $nomStr==='') {
         return null;
     }
 
@@ -480,7 +492,7 @@ function normalizeRow(array $row): ?array {
     return [
         'tgl'        => $tgl,
         'keterangan' => $ket,
-        'code_coa'   => $code_coa,
+        'coa_id'   => $coa_id,
         'jenis'      => $jenis,
         'nominal'    => $nominal,
     ];
@@ -515,7 +527,7 @@ function parseDateFlex(string $s): ?string {
 }
 
 /**
- * Dapatkan coa_id dari code_coa (cache agar hemat query).
+ * Dapatkan coa_id dari coa_id (cache agar hemat query).
  * - Cocokkan ke kolom `code` di tabel `coa` (ubah sesuai skema Bapak).
  * - Hanya terima yang aktif (is_active=1). Sesuaikan jika tak perlu.
  */
