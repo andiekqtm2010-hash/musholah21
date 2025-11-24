@@ -14,4 +14,4 @@ define('DB_NAME', 'musholla_keuangan'); // Nama database
 date_default_timezone_set('Asia/Jakarta');
 
 // Base URL (sesuaikan dengan folder di server)
-$base_url = 'http://localhost/musholah21/';
+$base_url = 'http://localhost/mushola21/';

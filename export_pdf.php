@@ -24,7 +24,7 @@ $total_kredit = $report['total_kredit'];
 
 // Buat HTML sederhana untuk dijadikan PDF
 $html = '
-<h2 style="text-align:center;">Laporan Keuangan Musholla</h2>
+<h2 style="text-align:center;">Laporan Keuangan Mushollah21</h2>
 <p>Periode: ' . htmlspecialchars($start_date) . ' s/d ' . htmlspecialchars($end_date) . '</p>
 <table border="1" cellspacing="0" cellpadding="4" width="100%">
     <thead>

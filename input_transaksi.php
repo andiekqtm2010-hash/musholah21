@@ -53,7 +53,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($error)) {
 
         // Hitung saldo sederhana: debet - kredit
-        $saldo = $debet - $kredit;
+        // Ambil saldo sebelumnya
+        $last_saldo = getLastSaldo();
+
+        // Hitung saldo baru (running balance)
+        if ($debet > 0) {
+            // debet menambah saldo
+            $saldo = $last_saldo + $debet;
+        } else {
+            // kredit mengurangi saldo
+            $saldo = $last_saldo - $kredit;
+}
 
         // Siapkan array data untuk insert
         $data = [
@@ -82,20 +92,144 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Input Transaksi Buku Besar</title>
+    <title>Input Transaksi Musholah21</title>
     <style>
-        body { font-family: Arial; }
-        label { display:block; margin-top:10px; }
-        input, select, textarea {
-            padding: 6px;
-            width: 300px;
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #2ecc71; /* hijau seperti contoh */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .wrapper {
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            margin: 0 auto;
+            max-width: 450px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            padding: 25px 30px 30px 30px;
+        }
+
+        .card-header {
+            margin-bottom: 20px;
+        }
+
+        .card-header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+        }
+
+        .card-header p {
+            margin: 5px 0 0 0;
+            font-size: 13px;
+            color: #777;
+        }
+
+        .alert-success {
+            background: #e8f9f1;
+            border-left: 4px solid #2ecc71;
+            padding: 10px 12px;
+            font-size: 13px;
+            color: #2b7a4b;
+            margin-bottom: 12px;
+            border-radius: 3px;
+        }
+
+        .alert-error {
+            background: #fdecea;
+            border-left: 4px solid #e74c3c;
+            padding: 10px 12px;
+            font-size: 13px;
+            color: #a94442;
+            margin-bottom: 12px;
+            border-radius: 3px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: #555;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="date"]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: #2ecc71;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 3px;
+            background: #2ecc71;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .btn-submit:hover {
+            background: #27ae60;
+        }
+
+        .links {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+
+        .links a {
+            color: #2ecc71;
+            text-decoration: none;
+            margin: 0 5px;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
         }
     </style>
+
     <script>
-        // ----------------------------------------------
-        // Validasi sederhana di sisi client (JavaScript)
-        // untuk memastikan hanya Debet atau Kredit yang diisi
-        // ----------------------------------------------
         function validateForm() {
             var debet  = parseFloat(document.getElementById('debet').value)  || 0;
             var kredit = parseFloat(document.getElementById('kredit').value) || 0;
@@ -107,13 +241,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return true;
         }
 
-        // Jika user mengisi Debet > 0, otomatis nol-kan Kredit, dan sebaliknya
         function onDebetChange() {
             var debet = parseFloat(document.getElementById('debet').value) || 0;
             if (debet > 0) {
                 document.getElementById('kredit').value = 0;
             }
         }
+
         function onKreditChange() {
             var kredit = parseFloat(document.getElementById('kredit').value) || 0;
             if (kredit > 0) {
@@ -124,59 +258,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 
-<h1>Input Transaksi Buku Besar</h1>
+<div class="wrapper">
+    <div class="card">
+        <div class="card-header">
+            <h1>Input Transaksi Musholah21</h1>
+            <p>Isi data transaksi keuangan musholla dengan lengkap.</p>
+        </div>
 
-<?php if (!empty($message)): ?>
-    <p style="color:green; font-weight:bold;"><?php echo $message; ?></p>
-<?php endif; ?>
+        <?php if (!empty($message)): ?>
+            <div class="alert-success"><?php echo $message; ?></div>
+        <?php endif; ?>
 
-<?php if (!empty($error)): ?>
-    <p style="color:red; font-weight:bold;"><?php echo $error; ?></p>
-<?php endif; ?>
+        <?php if (!empty($error)): ?>
+            <div class="alert-error"><?php echo $error; ?></div>
+        <?php endif; ?>
 
-<form method="post" onsubmit="return validateForm();">
+        <form method="post" onsubmit="return validateForm();">
 
-    <!-- No Urut (auto) -->
-    <label>No. Urut:</label>
-    <input type="number" name="no_urut" value="<?php echo (int)$next_no_urut; ?>" readonly>
+            <div class="form-group">
+                <label>No. Urut</label>
+                <input type="number" name="no_urut"
+                       value="<?php echo (int)$next_no_urut; ?>" readonly>
+            </div>
 
-    <!-- Tanggal -->
-    <label>Tanggal Transaksi:</label>
-    <input type="date" name="tanggal" required>
+            <div class="form-group">
+                <label>Tanggal Transaksi</label>
+                <input type="date" name="tanggal" required>
+            </div>
 
-    <!-- COA -->
-    <label>Pilih COA:</label>
-    <select name="coa_id" required>
-        <option value="">-- Pilih COA --</option>
-        <?php foreach ($coa_list as $c): ?>
-            <option value="<?php echo $c['id']; ?>">
-                <?php echo htmlspecialchars($c['nama_coa']); ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
+            <div class="form-group">
+                <label>Pilih COA</label>
+                <select name="coa_id" required>
+                    <option value="">-- Pilih COA --</option>
+                    <?php foreach ($coa_list as $c): ?>
+                        <option value="<?php echo $c['id']; ?>">
+                            <?php echo htmlspecialchars($c['nama_coa']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
 
-    <!-- Keterangan -->
-    <label>Keterangan:</label>
-    <textarea name="keterangan" rows="3"></textarea>
+            <div class="form-group">
+                <label>Keterangan</label>
+                <textarea name="keterangan" rows="3"
+                          placeholder="Tuliskan keterangan transaksi"></textarea>
+            </div>
 
-    <!-- Debet -->
-    <label>Debet (isi angka atau 0):</label>
-    <input type="number" step="0.01" name="debet" id="debet" value="0" oninput="onDebetChange();" required>
+            <div class="form-group">
+                <label>Debet (isi angka atau 0)</label>
+                <input type="number" step="0.01" name="debet" id="debet"
+                       value="0" oninput="onDebetChange();" required>
+            </div>
 
-    <!-- Kredit -->
-    <label>Kredit (isi angka atau 0):</label>
-    <input type="number" step="0.01" name="kredit" id="kredit" value="0" oninput="onKreditChange();" required>
+            <div class="form-group">
+                <label>Kredit (isi angka atau 0)</label>
+                <input type="number" step="0.01" name="kredit" id="kredit"
+                       value="0" oninput="onKreditChange();" required>
+            </div>
 
-    <br><br>
-    <button type="submit">Simpan Transaksi</button>
-</form>
+            <button type="submit" class="btn-submit">Simpan Transaksi</button>
+        </form>
 
-<br>
-<p>
-    <a href="report.php">Lihat Laporan</a> |
-    <a href="import.php">Import Excel</a> |
-    <a href="index.php">Menu Utama</a>
-</p>
+        <div class="links">
+            <a href="report.php">Lihat Laporan</a> |
+            <a href="import.php">Import Data Buku Besar</a> |
+            <a href="index.php">Menu Utama</a>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

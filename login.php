@@ -218,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-icon">
         <div class="circle"></div>
     </div>
-    <div class="login-title">USER LOGIN</div>
+    <div class="login-title">USER LOGIN <BR> MUSHOLAH21</div>
 
     <?php if (!empty($error)): ?>
         <div class="error-message">
@@ -259,6 +259,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit" class="btn-login">LOGIN</button>
     </form>
 </div>
-
 </body>
+
 </html>

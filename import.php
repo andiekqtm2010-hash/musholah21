@@ -8,6 +8,7 @@ require 'vendor/autoload.php';      // PhpSpreadsheet
 require 'functions.php';
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date;   // <--- TAMBAH INI DI SINI
 
 // Untuk contoh, kita hardcode created_by = 1
 // Nanti bisa diubah jika sudah ada fitur login
@@ -35,39 +36,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
         // Mulai dari baris ke-2 (baris 1 adalah header)
         for ($row = 2; $row <= $highestRow; $row++) {
 
-            // Baca nilai dari tiap kolom sesuai struktur contoh
             $no_urut    = $sheet->getCell('A' . $row)->getValue();
-            $tanggalRaw = $sheet->getCell('B' . $row)->getValue();
+            $tanggalCell = $sheet->getCell('B' . $row);
+            $tanggalVal  = $tanggalCell->getValue();
             $keterangan = $sheet->getCell('C' . $row)->getValue();
             $coa_name   = $sheet->getCell('D' . $row)->getValue();
-            $debet      = $sheet->getCell('E' . $row)->getValue();
-            $kredit     = $sheet->getCell('F' . $row)->getValue();
-            $saldo      = $sheet->getCell('G' . $row)->getValue();
 
-            // Jika baris kosong (tidak ada No & Tanggal), skip
-            if (empty($no_urut) && empty($tanggalRaw) && empty($keterangan)) {
+            // kolom angka/rupiah
+            $debet  = $sheet->getCell('E' . $row)->getCalculatedValue();
+            $kredit = $sheet->getCell('F' . $row)->getCalculatedValue();
+            $saldo  = $sheet->getCell('G' . $row)->getCalculatedValue();
+
+            // Skip jika baris kosong
+            if (empty($no_urut) && empty($tanggalCell->getValue()) && empty($keterangan)) {
                 continue;
             }
 
-            // Konversi tanggal Excel ke format Y-m-d
-            // Catatan: jika di file sudah string '2025-01-01' maka ini langsung jalan.
-            // Jika berupa nomor serial Excel, IOFactory akan mengkonversi ke DateTime.
-            if ($tanggalRaw instanceof \PhpOffice\PhpSpreadsheet\Shared\Date) {
-                $tanggal = date('Y-m-d', \PhpOffice\PhpSpreadsheet\Shared\Date::excelToTimestamp($tanggalRaw));
+            // ============================
+            // KONVERSI TANGGAL
+            // ============================
+
+            // JIKA cell-nya bertipe Date ATAU value numeric (serial Excel)
+            if (Date::isDateTime($tanggalCell) || is_numeric($tanggalVal)) {
+                // anggap sebagai serial tanggal Excel
+                $tanggal = Date::excelToDateTimeObject($tanggalVal)->format('Y-m-d');
+
             } else {
-                // Coba langsung parse string
-                $tanggal = date('Y-m-d', strtotime($tanggalRaw));
+                // kalau berupa teks, coba parse manual
+                $tanggalRaw = trim((string)$tanggalVal);
+
+                // beberapa pola umum tanggal
+                $formats = ['Y-m-d', 'd/m/Y', 'd-m-Y', 'm/d/Y', 'Y/m/d'];
+
+                $tanggal = null;
+                foreach ($formats as $f) {
+                    $d = DateTime::createFromFormat($f, $tanggalRaw);
+                    if ($d) {
+                        $tanggal = $d->format('Y-m-d');
+                        break;
+                    }
+                }
+
+                // kalau masih belum kebaca, terakhir pakai strtotime
+                if (!$tanggal) {
+                    $ts = strtotime($tanggalRaw);
+                    $tanggal = $ts ? date('Y-m-d', $ts) : '1970-01-01'; // fallback
+                }
             }
 
-            // Pastikan nilai numeric
-            $debet  = (float)$debet;
-            $kredit = (float)$kredit;
-            $saldo  = (float)$saldo;
+            // Pastikan numeric
+            $debet  = (float) str_replace(['.', ','], ['', '.'], $debet);
+            $kredit = (float) str_replace(['.', ','], ['', '.'], $kredit);
+            $saldo  = (float) str_replace(['.', ','], ['', '.'], $saldo);
 
-            // Cari atau buat COA di mastercoa
+            // Cari / buat COA
             $coa_id = getOrCreateCoaId(trim($coa_name));
 
-            // Data untuk disimpan
+            // Data untuk simpan ke DB
             $data = [
                 'no_urut'    => !empty($no_urut) ? (int)$no_urut : null,
                 'tanggal'    => $tanggal,
@@ -79,9 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
                 'created_by' => $default_user_id
             ];
 
-            // Simpan ke tabel bukubesar
             insertBukuBesarRow($data);
         }
+
 
         $message = 'Import data selesai. File: ' . htmlspecialchars($file_name);
     } catch (Exception $e) {

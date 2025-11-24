@@ -88,21 +88,22 @@ function insertBukuBesarRow($data)
 {
     $conn = getConnection();
 
-    $sql = "INSERT INTO bukubesar 
+    $sql = "INSERT INTO bukubesar
             (no_urut, tanggal, keterangan, coa_id, debet, kredit, saldo, created_by)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $conn->prepare($sql);
 
-    $no_urut    = $data['no_urut'] ?? null;
-    $tanggal    = $data['tanggal'] ?? null;
+    $no_urut    = $data['no_urut']    ?? null;
+    $tanggal    = $data['tanggal']    ?? null;
     $keterangan = $data['keterangan'] ?? null;
-    $coa_id     = $data['coa_id'] ?? null;
-    $debet      = $data['debet'] ?? 0;
-    $kredit     = $data['kredit'] ?? 0;
-    $saldo      = $data['saldo'] ?? 0;
+    $coa_id     = $data['coa_id']     ?? null;
+    $debet      = $data['debet']      ?? 0;
+    $kredit     = $data['kredit']     ?? 0;
+    $saldo      = $data['saldo']      ?? 0;
     $created_by = $data['created_by'] ?? null;
 
+    //    i     s     s     i     d      d      d      i
     $stmt->bind_param(
         "issidddi",
         $no_urut,
@@ -119,6 +120,7 @@ function insertBukuBesarRow($data)
     $stmt->close();
     $conn->close();
 }
+
 
 /**
  * getCoaList()
@@ -201,211 +203,227 @@ function getReportBukuBesar($start_date, $end_date, $coa_id = null)
         'total_debet'  => $total_debet,
         'total_kredit' => $total_kredit
     ];
-
-    //=========================update==============================================//
-
-    /**
-     * getNextNoUrut()
-     * ----------------------------------------------
-     * Mengambil no_urut berikutnya dari tabel bukubesar.
-     * Logika: ambil MAX(no_urut) lalu + 1.
-     * Jika belum ada data, mulai dari 1.
-     */
-    function getNextNoUrut()
-    {
-        $conn = getConnection();
-        $sql = "SELECT COALESCE(MAX(no_urut), 0) AS max_no FROM bukubesar";
-        $result = $conn->query($sql);
-        $row = $result->fetch_assoc();
-        $next = (int)$row['max_no'] + 1;
-        $conn->close();
-        return $next;
-    }
-
-    /**
-     * getTransaksiById($id)
-     * ----------------------------------------------
-     * Mengambil satu baris transaksi buku besar berdasarkan ID.
-     * Mengembalikan array asosiatif atau null jika tidak ditemukan.
-     */
-    function getTransaksiById($id)
-    {
-        $conn = getConnection();
-        $sql = "SELECT * FROM bukubesar WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $data = $result->fetch_assoc();
-        $stmt->close();
-        $conn->close();
-        return $data ?: null;
-    }
-
-    /**
-     * updateBukuBesarRow($id, $data)
-     * ----------------------------------------------
-     * Mengupdate satu baris transaksi di tabel bukubesar berdasarkan ID.
-     * Struktur $data sama dengan insertBukuBesarRow (kecuali created_by boleh diabaikan).
-     */
-    function updateBukuBesarRow($id, $data)
-    {
-        $conn = getConnection();
-
-        $sql = "UPDATE bukubesar
-                SET no_urut = ?, tanggal = ?, keterangan = ?, coa_id = ?, 
-                    debet = ?, kredit = ?, saldo = ?
-                WHERE id = ?";
-
-        $stmt = $conn->prepare($sql);
-
-        $no_urut    = $data['no_urut'] ?? null;
-        $tanggal    = $data['tanggal'] ?? null;
-        $keterangan = $data['keterangan'] ?? null;
-        $coa_id     = $data['coa_id'] ?? null;
-        $debet      = $data['debet'] ?? 0;
-        $kredit     = $data['kredit'] ?? 0;
-        $saldo      = $data['saldo'] ?? 0;
-
-        $stmt->bind_param(
-            "issidddi",
-            $no_urut,
-            $tanggal,
-            $keterangan,
-            $coa_id,
-            $debet,
-            $kredit,
-            $saldo,
-            $id
-        );
-
-        $stmt->execute();
-        $stmt->close();
-        $conn->close();
-    }
-
-    /**
-     * deleteBukuBesar($id)
-     * ----------------------------------------------
-     * Menghapus satu baris transaksi dari tabel bukubesar berdasarkan ID.
-     */
-    function deleteBukuBesar($id)
-    {
-        $conn = getConnection();
-        $sql = "DELETE FROM bukubesar WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-        $stmt->close();
-        $conn->close();
-    }   
-
-    // =======================================================
-    // Fungsi-fungsi terkait autentikasi / login
-    // =======================================================
-
-    /**
-     * findUserByUsername($username)
-     * ----------------------------------------------
-     * Mencari 1 user di tabel masteruser berdasarkan username.
-     * Jika ada, mengembalikan array data user.
-     * Jika tidak ada, mengembalikan null.
-     */
-    function findUserByUsername($username)
-    {
-        $conn = getConnection();
-
-        $sql = "SELECT * FROM masteruser WHERE username = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-
-        $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
-
-        $stmt->close();
-        $conn->close();
-
-        return $user ?: null;
-    }
-
-    /**
-     * loginUser($username, $password)
-     * ----------------------------------------------
-     * Mencoba login dengan username & password.
-     * - Cek apakah user ada.
-     * - Cek password dengan password_verify.
-     * Jika sukses, set data di $_SESSION dan mengembalikan true.
-     * Jika gagal, mengembalikan false.
-     */
-    function loginUser($username, $password)
-    {
-        // Pastikan session sudah dimulai
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        $user = findUserByUsername($username);
-        if (!$user) {
-            return false;
-        }
-
-        // Verifikasi password hash
-        if (!password_verify($password, $user['password'])) {
-            return false;
-        }
-
-        // Simpan info user di session
-        $_SESSION['user_id']       = $user['id'];
-        $_SESSION['username']      = $user['username'];
-        $_SESSION['nama_lengkap']  = $user['nama_lengkap'];
-        $_SESSION['role']          = $user['role'];
-
-        return true;
-    }
-
-    /**
-     * isLoggedIn()
-     * ----------------------------------------------
-     * Mengecek apakah user sudah login atau belum
-     * berdasarkan keberadaan $_SESSION['user_id'].
-     */
-    function isLoggedIn()
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        return !empty($_SESSION['user_id']);
-    }
-
-    /**
-     * requireLogin()
-     * ----------------------------------------------
-     * Dipakai di halaman-halaman yang butuh login.
-     * Jika belum login, user akan diarahkan ke login.php.
-     */
-    function requireLogin()
-    {
-        if (!isLoggedIn()) {
-            header('Location: login.php');
-            exit;
-        }
-    }
-
-    /**
-     * logoutUser()
-     * ----------------------------------------------
-     * Menghapus semua data session user (logout).
-     */
-    function logoutUser()
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        session_unset();
-        session_destroy();
-    }
-
-    
 }
+
+/**
+ * getNextNoUrut()
+ * ----------------------------------------------
+ * Mengambil no_urut berikutnya dari tabel bukubesar.
+ * Logika: ambil MAX(no_urut) lalu + 1.
+ * Jika belum ada data, mulai dari 1.
+ */
+function getNextNoUrut()
+{
+    $conn = getConnection();
+    $sql = "SELECT COALESCE(MAX(no_urut), 0) AS max_no FROM bukubesar";
+    $result = $conn->query($sql);
+    $row = $result->fetch_assoc();
+    $next = (int)$row['max_no'] + 1;
+    $conn->close();
+    return $next;
+}
+
+/**
+ * getTransaksiById($id)
+ * ----------------------------------------------
+ * Mengambil satu baris transaksi buku besar berdasarkan ID.
+ * Mengembalikan array asosiatif atau null jika tidak ditemukan.
+ */
+function getTransaksiById($id)
+{
+    $conn = getConnection();
+    $sql = "SELECT * FROM bukubesar WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $data = $result->fetch_assoc();
+    $stmt->close();
+    $conn->close();
+    return $data ?: null;
+}
+
+/**
+ * updateBukuBesarRow($id, $data)
+ * ----------------------------------------------
+ * Mengupdate satu baris transaksi di tabel bukubesar berdasarkan ID.
+ * Struktur $data sama dengan insertBukuBesarRow (kecuali created_by boleh diabaikan).
+ */
+function updateBukuBesarRow($id, $data)
+{
+    $conn = getConnection();
+
+    $sql = "UPDATE bukubesar
+            SET no_urut = ?, tanggal = ?, keterangan = ?, coa_id = ?, 
+                debet = ?, kredit = ?, saldo = ?
+            WHERE id = ?";
+
+    $stmt = $conn->prepare($sql);
+
+    $no_urut    = $data['no_urut'] ?? null;
+    $tanggal    = $data['tanggal'] ?? null;
+    $keterangan = $data['keterangan'] ?? null;
+    $coa_id     = $data['coa_id'] ?? null;
+    $debet      = $data['debet'] ?? 0;
+    $kredit     = $data['kredit'] ?? 0;
+    $saldo      = $data['saldo'] ?? 0;
+
+    $stmt->bind_param(
+        "issidddi",
+        $no_urut,
+        $tanggal,
+        $keterangan,
+        $coa_id,
+        $debet,
+        $kredit,
+        $saldo,
+        $id
+    );
+
+    $stmt->execute();
+    $stmt->close();
+    $conn->close();
+}
+
+/**
+ * deleteBukuBesar($id)
+ * ----------------------------------------------
+ * Menghapus satu baris transaksi dari tabel bukubesar berdasarkan ID.
+ */
+function deleteBukuBesar($id)
+{
+    $conn = getConnection();
+    $sql = "DELETE FROM bukubesar WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $stmt->close();
+    $conn->close();
+}
+
+// =======================================================
+// Fungsi-fungsi terkait autentikasi / login
+// =======================================================
+
+/**
+ * findUserByUsername($username)
+ * ----------------------------------------------
+ * Mencari 1 user di tabel masteruser berdasarkan username.
+ * Jika ada, mengembalikan array data user.
+ * Jika tidak ada, mengembalikan null.
+ */
+function findUserByUsername($username)
+{
+    $conn = getConnection();
+
+    $sql = "SELECT * FROM masteruser WHERE username = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
+
+    $stmt->close();
+    $conn->close();
+
+    return $user ?: null;
+}
+
+/**
+ * loginUser($username, $password)
+ * ----------------------------------------------
+ * Mencoba login dengan username & password.
+ * - Cek apakah user ada.
+ * - Cek password dengan password_verify.
+ * Jika sukses, set data di $_SESSION dan mengembalikan true.
+ * Jika gagal, mengembalikan false.
+ */
+function loginUser($username, $password)
+{
+    // Pastikan session sudah dimulai
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $user = findUserByUsername($username);
+    if (!$user) {
+        return false;
+    }
+
+    // Verifikasi password hash (pastikan kolom password di DB berisi HASH)
+    if (!password_verify($password, $user['password'])) {
+        return false;
+    }
+
+    // Simpan info user di session
+    $_SESSION['user_id']       = $user['id'];
+    $_SESSION['username']      = $user['username'];
+    $_SESSION['nama_lengkap']  = $user['nama_lengkap'];
+    $_SESSION['role']          = $user['role'];
+
+    return true;
+}
+
+/**
+ * isLoggedIn()
+ * ----------------------------------------------
+ * Mengecek apakah user sudah login atau belum
+ * berdasarkan keberadaan $_SESSION['user_id'].
+ */
+function isLoggedIn()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    return !empty($_SESSION['user_id']);
+}
+
+/**
+ * requireLogin()
+ * ----------------------------------------------
+ * Dipakai di halaman-halaman yang butuh login.
+ * Jika belum login, user akan diarahkan ke login.php.
+ */
+function requireLogin()
+{
+    if (!isLoggedIn()) {
+        header('Location: login.php');
+        exit;
+    }
+}
+
+/**
+ * logoutUser()
+ * ----------------------------------------------
+ * Menghapus semua data session user (logout).
+ */
+function logoutUser()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    session_unset();
+    session_destroy();
+}
+
+function getLastSaldo()
+{
+    // buka koneksi baru, sama seperti fungsi lain
+    $conn = getConnection();
+
+    $sql = "SELECT saldo FROM bukubesar ORDER BY id DESC LIMIT 1";
+    $result = $conn->query($sql);
+
+    if ($result && $row = $result->fetch_assoc()) {
+        $saldo = (float)$row['saldo'];
+    } else {
+        $saldo = 0; // kalau belum ada data, saldo awal = 0
+    }
+
+    $conn->close();
+    return $saldo;
+}
+
+?>

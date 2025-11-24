@@ -1,4 +1,14 @@
 <?php
+//    require __DIR__ . '/functions.php';
+
+/*    DEBUG: cek apakah fungsi isLoggedIn terdefinisi
+echo "<pre>LOGIN loaded: " . __FILE__ . "</pre>";
+echo "<pre>functions.php loaded? isLoggedIn exists? "
+    . (function_exists('isLoggedIn') ? 'YES' : 'NO')
+    . "</pre>";
+die('STOP DEBUG DI SINI');
+*/
+
     require 'functions.php';
     requireLogin();   // memastikan user sudah login
 ?>
