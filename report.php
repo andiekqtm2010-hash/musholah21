@@ -4,8 +4,8 @@
 // Halaman laporan keuangan (buku besar) Musholla
 // =======================================================
 
-require 'functions.php';
-requireLogin();   // memastikan user sudah login
+require_once 'functions.php';
+//requireLogin();   // memastikan user sudah login
 
 // ----------------------------------------------
 // Setup default filter (bulan berjalan)
@@ -35,29 +35,56 @@ $total_kredit = $report['total_kredit'];
 // ----------------------------------------------
 // PAGING (min 20 baris per halaman)
 // ----------------------------------------------
-$perPage   = 20;
-$totalRows = count($rowsAll);
-$totalPages = max(1, ceil($totalRows / $perPage));
+$perPage    = 20;                              // jumlah baris per halaman
+$totalRows  = count($rowsAll);                 // total baris hasil filter
+$totalPages = max(1, ceil($totalRows / $perPage));  // minimal 1 halaman
 
-$page = isset($_GET['page']) && (int)$_GET['page'] > 0 ? (int)$_GET['page'] : 1;
-if ($page > $totalPages) $page = $totalPages;
+// Gunakan parameter 'p' untuk nomor halaman (bukan 'page', karena 'page' dipakai router index.php)
+$currentPage = isset($_GET['p']) && (int)$_GET['p'] > 0
+    ? (int)$_GET['p']
+    : 1;
 
-$offset = ($page - 1) * $perPage;
-$rows   = array_slice($rowsAll, $offset, $perPage);
-
-// helper untuk bikin link paging sambil membawa parameter filter
-function buildPageUrl($page)
-{
-    $params = $_GET;
-    $params['page'] = $page;
-    return 'report.php?' . http_build_query($params);
+// Jika nomor halaman melebihi total halaman, kunci di halaman terakhir
+if ($currentPage > $totalPages) {
+    $currentPage = $totalPages;
 }
+
+// Hitung offset untuk slicing array
+$offset = ($currentPage - 1) * $perPage;
+
+// Ambil subset data untuk halaman yang sedang aktif
+$rows = array_slice($rowsAll, $offset, $perPage);
+
+/**
+ * buildPageUrl($p)
+ * ----------------------------------------------
+ * Helper untuk membuat URL pagination:
+ * - Tetap lewat index.php
+ * - Menjaga parameter filter (start_date, end_date, coa_id, dll)
+ * - Memastikan router index.php tetap page=report
+ * - Menggunakan 'p' sebagai parameter nomor halaman
+ */
+function buildPageUrl($p)
+{
+    // copy semua parameter GET yang ada saat ini
+    $params = $_GET;
+
+    // pastikan router tetap mengarah ke report
+    $params['page'] = 'report';
+
+    // set nomor halaman untuk pagination
+    $params['p'] = (int)$p;
+
+    // kembalikan URL lengkap menuju index.php
+    return 'index.php?' . http_build_query($params);
+}
+
 ?>
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Laporan Keuangan Mushollah21</title>
+    <title>Laporan Keuangan Mushollah DHARUSH SHOLIHIN</title>
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -106,12 +133,13 @@ function buildPageUrl($page)
 </head>
 <body>
 <div class="page-wrapper">
-    <h2 class="mb-3">Laporan Keuangan Musholla</h2>
+    <h2 class="mb-3">Laporan Keuangan Mushollah Dharush Sholohin</h2>
 
     <!-- Panel Filter + Tombol -->
     <div class="card mb-3">
         <div class="card-body">
-            <form class="row g-2 align-items-end" method="get" action="report.php">
+            <form class="row g-2 align-items-end" method="get" action="index.php">
+                <input type="hidden" name="page" value="report">
                 <div class="col-md-3">
                     <label class="form-label">Dari Tanggal</label>
                     <input type="date" name="start_date" class="form-control"
@@ -141,11 +169,11 @@ function buildPageUrl($page)
 
             <div class="mt-3 d-flex flex-wrap gap-2">
                 <!-- Refresh -->
-                <a href="report.php" class="btn btn-refresh">Refresh</a>
+                <a href="index.php?page=report" class="btn btn-refresh">Refresh</a>
                 <!-- Tambah transaksi -->
-                <a href="input_transaksi.php" class="btn btn-tambah">Tambah</a>
+                <a href="index.php?page=input" class="btn btn-tambah">Tambah</a>
                 <!-- Import -->
-                <a href="import.php" class="btn btn-import">Import</a>
+                <a href="index.php?page=import" class="btn btn-import">Import</a>
 
                 <!-- Export Excel -->
                 <form method="get" action="export_excel.php" class="d-inline-block ms-auto">
@@ -179,7 +207,7 @@ function buildPageUrl($page)
                         <th>Keterangan</th>
                         <th style="width:120px;">Debet</th>
                         <th style="width:120px;">Kredit</th>
-                        <th style="width:140px;">Saldo (dari data)</th>
+                        <th style="width:140px;">Saldo</th>
                         <th style="width:90px;">Aksi</th>
                     </tr>
                     </thead>
@@ -234,23 +262,23 @@ function buildPageUrl($page)
             </div>
             <nav>
                 <ul class="pagination mb-0">
-                    <li class="page-item <?php echo ($page <= 1) ? 'disabled' : ''; ?>">
+                    <li class="page-item <?php echo ($currentPage <= 1) ? 'disabled' : ''; ?>">
                         <a class="page-link" href="<?php echo buildPageUrl(1); ?>">&laquo;</a>
                     </li>
-                    <li class="page-item <?php echo ($page <= 1) ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="<?php echo buildPageUrl($page - 1); ?>">&lsaquo;</a>
+                    <li class="page-item <?php echo ($currentPage <= 1) ? 'disabled' : ''; ?>">
+                        <a class="page-link" href="<?php echo buildPageUrl($currentPage - 1); ?>">&lsaquo;</a>
                     </li>
 
                     <li class="page-item active">
                         <span class="page-link">
-                            Hal <?php echo $page; ?> / <?php echo $totalPages; ?>
+                            Hal <?php echo $currentPage; ?> / <?php echo $totalPages; ?>
                         </span>
                     </li>
 
-                    <li class="page-item <?php echo ($page >= $totalPages) ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="<?php echo buildPageUrl($page + 1); ?>">&rsaquo;</a>
+                    <li class="page-item <?php echo ($currentPage >= $totalPages) ? 'disabled' : ''; ?>">
+                        <a class="page-link" href="<?php echo buildPageUrl($currentPage + 1); ?>">&rsaquo;</a>
                     </li>
-                    <li class="page-item <?php echo ($page >= $totalPages) ? 'disabled' : ''; ?>">
+                    <li class="page-item <?php echo ($currentPage >= $totalPages) ? 'disabled' : ''; ?>">
                         <a class="page-link" href="<?php echo buildPageUrl($totalPages); ?>">&raquo;</a>
                     </li>
                 </ul>
@@ -258,8 +286,8 @@ function buildPageUrl($page)
         </div>
     </div>
 
-    <div class="mt-3">
-        <a href="index.php">Menu Utama</a>
+    <div class="text-center mb-4">
+        <br><a href="index.php" class="btn btn-primary me-2">Menu Utama</a>
     </div>
 </div>
 </body>

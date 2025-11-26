@@ -4,8 +4,8 @@
 // Halaman untuk upload & import data dari file Excel
 // =======================================================
 
-require 'vendor/autoload.php';      // PhpSpreadsheet
-require 'functions.php';
+/*require 'vendor/autoload.php';      // PhpSpreadsheet
+require 'functions.php'; */
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;   // <--- TAMBAH INI DI SINI
@@ -130,10 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
     <form method="post" enctype="multipart/form-data">
         <label>Pilih File Excel (.xlsx):</label><br>
         <input type="file" name="excel_file" accept=".xls,.xlsx" required><br><br>
-        <button type="submit">Import</button>
+        <button type="submit" class="btn btn-secondary">Import</button>
     </form>
 
-    <p><a href="report.php">Lihat Laporan Keuangan</a></p>
-    <p><a href="index.php">Kembali ke Menu Utama</a></p>
+    <div class="text-left mb-4">
+        <br><a href="index.php?page=report" class="btn btn-primary me-2">Lihat Laporan Detail</a>
+    </div>
+
 </body>
 </html>
