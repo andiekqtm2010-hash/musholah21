@@ -7,6 +7,8 @@
 require_once 'functions.php';
 //requireLogin();   // memastikan user sudah login
 
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
 // ----------------------------------------------
 // Setup default filter (bulan berjalan)
 // ----------------------------------------------
@@ -228,11 +230,8 @@ function buildPageUrl($p)
                                 <td class="text-end"><?php echo number_format($r['kredit'], 0, ',', '.'); ?></td>
                                 <td class="text-end"><?php echo number_format($r['saldo'], 0, ',', '.'); ?></td>
                                 <td class="text-center">
-                                    <a href="edit_transaksi.php?id=<?php echo $r['id']; ?>"
-                                       class="btn-action-edit" title="Edit">✏</a>
-                                    <a href="delete_transaksi.php?id=<?php echo $r['id']; ?>"
-                                       class="btn-action-delete"
-                                       onclick="return confirm('Yakin hapus transaksi ini?');"
+                                    <a href="index.php?page=edit_transaksi&id=<?php echo $r['id']; ?>" class="btn-action-edit" title="Edit">✏</a>
+                                    <a href="delete_transaksi.php?id=<?php echo $r['id']; ?>"class="btn-action-delete" onclick="return confirm('Yakin hapus transaksi ini?');"
                                        title="Hapus">🗑</a>
                                 </td>
                             </tr>

@@ -300,6 +300,28 @@ function getTransaksiById($id)
     return $data ?: null;
 }
 
+function getSaldoSebelumnya($no_urut)
+{
+    $conn = getConnection(); // buka koneksi database
+
+    // Query untuk mengambil SALDO dari transaksi SEBELUM no_urut sekarang.
+    // Logika: cari no_urut yang lebih kecil dari transaksi saat ini,
+    // urutkan dari yang paling besar (terdekat sebelumnya), ambil 1 saja.
+
+    $sql = "SELECT saldo FROM bukubesar WHERE no_urut < ? ORDER BY no_urut DESC LIMIT 1";                      
+
+    $stmt = $conn->prepare($sql);          // siapkan statement
+    $stmt->bind_param("i", $no_urut);      // binding no_urut sebagai integer
+    $stmt->execute();                      // jalankan query
+    $stmt->bind_result($saldo);            // ikat hasil ke variabel $saldo (temapat naruh hasilnya)
+    $stmt->fetch();                        // ambil data barisnya
+    $stmt->close();                        // tutup statement
+    $conn->close();                        // tutup koneksi
+
+    return $saldo ?? 0; // default 0 jika tidak ada row sebelumnya
+}
+
+
 /**
  * updateBukuBesarRow($id, $data)
  * ----------------------------------------------

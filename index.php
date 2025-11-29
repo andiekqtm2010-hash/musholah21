@@ -9,7 +9,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
 <html lang="id">
 <head>
     <meta charset="utf-8">
-    <title>Aplikasi Keuangan Musholla Darush Sholihin</title>
+    <title>Musholla21</title>
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -230,6 +230,8 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                href="index.php?page=import">Import Buku Besar</a>
             <a class="nav-link <?php echo ($page == 'report' ? 'active' : ''); ?>"
                href="index.php?page=report">Laporan Keuangan</a>
+            <a class="nav-link <?php echo ($page == 'edit_transaksi' ? 'active' : ''); ?>"
+               href="index.php?page=report">Laporan Keuangan</a>
             <a class="nav-link" href="logout.php">Logout</a>
         </div>
         <div class="sidebar-footer">
@@ -263,6 +265,10 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
 
                 case 'report':
                     include 'report.php';
+                    break;
+                
+                case 'edit_transaksi':
+                    include 'edit_transaksi.php';
                     break;
 
                 case 'dashboard':
